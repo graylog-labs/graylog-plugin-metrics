@@ -192,7 +192,7 @@ public class MetricsOutput implements MessageOutput {
                             CK_RUN_RATE,
                             "Submission frequency (seconds)",
                             30,
-                            "How often per second will Graylog submit metrics to the endpoint. " +
+                            "The period (in seconds) at which Graylog will submit metrics to the endpoint. " +
                             "Keep this number high to not flood the metrics store.",
                             ConfigurationField.Optional.NOT_OPTIONAL,
                             NumberField.Attribute.ONLY_POSITIVE)
