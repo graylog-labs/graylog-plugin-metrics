@@ -3,7 +3,7 @@ jdk:
   - oraclejdk7
   - oraclejdk8
 addons:
-	apt:
+  apt:
     packages:
       - rpm
 before_deploy:
