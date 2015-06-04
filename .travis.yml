@@ -1,0 +1,21 @@
+language: java
+jdk:
+  - oraclejdk7
+  - oraclejdk8
+before_deploy:
+  - mvn jdeb:jdeb && export RELEASE_DEB_FILE=$(ls target/*.deb)
+  - mvn rpm:rpm && export RELEASE_RPM_FILE=$(ls target/rpm/graylog-plugin-output-metrics/RPMS/noarch/graylog-plugin-output-metrics-*.rpm)
+  - export RELEASE_PKG_FILE=$(ls target/graylog-plugin-output-metrics-*.jar)
+  - echo "Deploying release to GitHub releases"
+deploy:
+  provider: releases
+  api_key:
+    secure: "FKvIrlptOFw+qv0ZaCf+QmsGoIvKJlS8plk+5ScAQvmcy3bo2n6cUyqqRdPiW0N6BwHZ8R2Hvwh1KmUAgQ6voqSoJccyhpS9vXyEAl3EcMYNcLLJoNuRGkqpIyX3Lm38WQedOxlTsho3liECgEuC1H5rdb4i2Vu3nKY6sTYxwPg="
+  file: 
+    - "${RELEASE_PKG_FILE}"
+    - "${RELEASE_DEB_FILE}"
+    - "${RELEASE_RPM_FILE}"
+  skip_cleanup: true
+  on:
+    tags: true
+    jdk: oraclejdk7
