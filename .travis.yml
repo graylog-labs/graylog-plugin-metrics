@@ -2,6 +2,10 @@ language: java
 jdk:
   - oraclejdk7
   - oraclejdk8
+addons:
+	apt:
+    packages:
+      - rpm
 before_deploy:
   - mvn jdeb:jdeb && export RELEASE_DEB_FILE=$(ls target/*.deb)
   - mvn rpm:rpm && export RELEASE_RPM_FILE=$(ls target/rpm/graylog-plugin-output-metrics/RPMS/noarch/graylog-plugin-output-metrics-*.rpm)
