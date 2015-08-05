@@ -1,8 +1,6 @@
 package org.graylog.outputs.metrics;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.MetricFilter;
-import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.*;
 import com.codahale.metrics.ganglia.GangliaReporter;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
@@ -50,12 +48,12 @@ public class MetricsOutput implements MessageOutput {
 
     private static final MetricRegistry registry = new MetricRegistry();
     private AtomicLongMap<String> metricBuffer = AtomicLongMap.create();
-    private List<String> gaugeFields;
+    private List<String> metricFields;
 
     @Inject
     public MetricsOutput(@Assisted Stream stream, @Assisted Configuration configuration) throws MessageOutputConfigurationException {
         this.configuration = configuration;
-        this.gaugeFields = Arrays.asList(configuration.getString(CK_FIELDS).split(","));
+        this.metricFields = Arrays.asList(configuration.getString(CK_FIELDS).split(","));
 
         metricBuffer.clear();
 
@@ -65,12 +63,16 @@ public class MetricsOutput implements MessageOutput {
 
         URI uri = parseUrl(configuration.getString(CK_URL));
 
-        if (uri.getScheme().equals("graphite")) {
-            graphiteReporter = createGraphiteReporter(uri);
-        } else if (uri.getScheme().equals("ganglia")) {
-            gangliaReporter = createGangliaReporter(uri);
-        } else {
-            LOG.error("Metrics backend not supported!");
+        switch (uri.getScheme()) {
+            case "graphite":
+                graphiteReporter = createGraphiteReporter(uri);
+                break;
+            case "ganglia":
+                gangliaReporter = createGangliaReporter(uri);
+                break;
+            default:
+                LOG.error("Metrics backend not supported!");
+                break;
         }
 
         isRunning.set(true);
@@ -79,9 +81,19 @@ public class MetricsOutput implements MessageOutput {
     @Override
     public void write(Message message) throws Exception {
         SortedSet<String> currentMetrics = registry.getNames();
+        final List<String> validTypes = Arrays.asList("gauge", "counter", "histogram", "meter");
 
-        for (String field : gaugeFields) {
+        for (String field : metricFields) {
             field = field.trim();
+            String fieldType = "gauge";
+            if(field.contains(":")) {
+                String[] tupel = field.split(":");
+                String type = tupel[tupel.length-1];
+                if(validTypes.contains(type)) {
+                    fieldType = type;
+                    field = tupel[0];
+                }
+            }
 
             LOG.trace("Trying to read field [{}] from message <{}>.", field, message.getId());
             if (!message.getFields().containsKey(field)) {
@@ -90,7 +102,7 @@ public class MetricsOutput implements MessageOutput {
 
             // Get value
             Object messageValue = message.getField(field);
-            Number metricValue = 0;
+            Number metricValue;
             if (messageValue instanceof Long) {
                 metricValue = (Long) messageValue;
             } else if (messageValue instanceof Integer) {
@@ -105,19 +117,37 @@ public class MetricsOutput implements MessageOutput {
                 continue;
             }
 
-            // Register metric
-            final String gauge_field = configuration.getBoolean(CK_INCLUDE_SOURCE) ? (message.getSource() + "." + field) : field;
-            if (!currentMetrics.contains(gauge_field)) {
-                registry.register(gauge_field, new Gauge<Number>() {
-                    @Override
-                    public Number getValue() {
-                        return metricBuffer.get(gauge_field);
+            final String metricName = configuration.getBoolean(CK_INCLUDE_SOURCE) ? (message.getSource() + "." + field) : field;
+            switch (fieldType.toLowerCase()) {
+                case "gauge":
+                    // Register metric
+                    if (!currentMetrics.contains(metricName)) {
+                        registry.register(metricName, new Gauge<Number>() {
+                            @Override
+                            public Number getValue() {
+                                return metricBuffer.get(metricName);
+                            }
+                        });
                     }
-                });
+                    // Update metric
+                    metricBuffer.put(metricName, metricValue.longValue());
+                    break;
+                case "counter":
+                    final Counter counter = registry.counter(metricName);
+                    counter.inc();
+                    break;
+                case "histogram":
+                    final Histogram histogram = registry.histogram(metricName);
+                    histogram.update(metricValue.longValue());
+                    break;
+                case "meter":
+                    final Meter meter = registry.meter(metricName);
+                    meter.mark(metricValue.longValue());
+                    break;
+                default:
+                    LOG.error("Unknown metric field type for [{}]: {}", metricName, fieldType);
             }
 
-            // Update metric
-            metricBuffer.put(gauge_field, metricValue.longValue());
         }
     }
 
@@ -184,7 +214,8 @@ public class MetricsOutput implements MessageOutput {
                             CK_FIELDS,
                             "Message fields to submit to metrics store",
                             "response_time,db_time,view_time",
-                            "A comma separated list of field values in messages that should be transmitted as gauge values.",
+                            "A comma separated list of field values in messages that should be transmitted as gauge values." +
+                            "Types like counter, meter, histogram can be set like: cache_hit:counter",
                             ConfigurationField.Optional.NOT_OPTIONAL)
             );
 
