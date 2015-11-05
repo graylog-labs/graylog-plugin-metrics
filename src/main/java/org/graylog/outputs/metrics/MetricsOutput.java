@@ -46,14 +46,14 @@ public class MetricsOutput implements MessageOutput {
     private GangliaReporter gangliaReporter;
     private GraphiteReporter graphiteReporter;
 
-    private static final MetricRegistry registry = new MetricRegistry();
+    private final MetricRegistry registry = new MetricRegistry();
     private AtomicLongMap<String> metricBuffer = AtomicLongMap.create();
     private List<String> metricFields;
 
     @Inject
     public MetricsOutput(@Assisted Stream stream, @Assisted Configuration configuration) throws MessageOutputConfigurationException {
         this.configuration = configuration;
-        this.metricFields = Arrays.asList(configuration.getString(CK_FIELDS).split(","));
+        metricFields = Arrays.asList(configuration.getString(CK_FIELDS).split(","));
 
         metricBuffer.clear();
 
@@ -97,7 +97,8 @@ public class MetricsOutput implements MessageOutput {
 
             LOG.trace("Trying to read field [{}] from message <{}>.", field, message.getId());
             if (!message.getFields().containsKey(field)) {
-                LOG.debug("Message <{}> does not contain field [{}]. Not sending to metrics store.", message.getId(), field);
+                LOG.error("Message <{}> does not contain field [{}]. Can not send data to metrics store.", message.getId(), field);
+                continue;
             }
 
             // Get value
@@ -111,13 +112,16 @@ public class MetricsOutput implements MessageOutput {
                 metricValue = (Float) messageValue;
             } else if (messageValue instanceof Double) {
                 metricValue = (Double) messageValue;
+            } else if (fieldType.equals("counter")) {
+                metricValue = 1;
             } else {
-                LOG.debug("Field [{}] of message <{}> is not of numeric type. Not sending to metrics store.",
+                LOG.error("Field [{}] of message <{}> is not of numeric type. Not sending to metrics store.",
                         field, message.getId());
                 continue;
             }
 
             final String metricName = configuration.getBoolean(CK_INCLUDE_SOURCE) ? (message.getSource() + "." + field) : field;
+
             switch (fieldType.toLowerCase()) {
                 case "gauge":
                     // Register metric
@@ -147,6 +151,7 @@ public class MetricsOutput implements MessageOutput {
                 default:
                     LOG.error("Unknown metric field type for [{}]: {}", metricName, fieldType);
             }
+            LOG.debug("Metrics in Registry: {}", registry.getNames());
 
         }
     }
