@@ -34,7 +34,7 @@ public class MetricsOutputMetaData implements PluginMetaData {
 
     @Override
     public Version getVersion() {
-        return new Version(1, 1, 4);
+        return new Version(1, 1, 5);
     }
 
     @Override
