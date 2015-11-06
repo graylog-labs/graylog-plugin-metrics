@@ -39,6 +39,7 @@ public class MetricsOutput implements MessageOutput {
     public static final String CK_RUN_RATE = "run_rate";
     public static final String CK_FIELDS = "fields";
     public static final String CK_INCLUDE_SOURCE = "include_source";
+    public static final String CK_INCLUDE_TYPE = "include_type";
 
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private Configuration configuration;
@@ -97,7 +98,7 @@ public class MetricsOutput implements MessageOutput {
 
             LOG.trace("Trying to read field [{}] from message <{}>.", field, message.getId());
             if (!message.getFields().containsKey(field)) {
-                LOG.error("Message <{}> does not contain field [{}]. Can not send data to metrics store.", message.getId(), field);
+                LOG.debug("Message <{}> does not contain field [{}]:[{}]. Can not send data to metrics store.", message.getId(), field, fieldType);
                 continue;
             }
 
@@ -120,7 +121,7 @@ public class MetricsOutput implements MessageOutput {
                 continue;
             }
 
-            final String metricName = configuration.getBoolean(CK_INCLUDE_SOURCE) ? (message.getSource() + "." + field) : field;
+            final String metricName = getMetricName(field, fieldType, message.getSource());
 
             switch (fieldType.toLowerCase()) {
                 case "gauge":
@@ -241,6 +242,13 @@ public class MetricsOutput implements MessageOutput {
                             "Metric name will be 'prefix + message source + field name'.")
             );
 
+            configurationRequest.addField(new BooleanField(
+                            CK_INCLUDE_TYPE,
+                            "Include field type in metric name",
+                            false,
+                            "Metric name will be 'field name + type'.")
+            );
+
             return configurationRequest;
         }
     }
@@ -256,6 +264,24 @@ public class MetricsOutput implements MessageOutput {
         public Descriptor() {
             super("Metrics Output", false, "", "Forwards selected field values of your messages to Graphite/Ganglia/InfluxDB.");
         }
+    }
+
+    private String getMetricName(String field, String fieldType, String messageSource) {
+        String metricName;
+
+        /* prefix message source to metric name */
+        if (configuration.getBoolean(CK_INCLUDE_SOURCE)) {
+            metricName = messageSource + "." + field;
+        } else {
+            metricName = field;
+        }
+
+        /* postfix field type to metric name */
+        if (configuration.getBoolean(CK_INCLUDE_TYPE)) {
+            metricName = metricName + "." + fieldType;
+        }
+
+        return metricName;
     }
 
     private URI parseUrl(String url) {
