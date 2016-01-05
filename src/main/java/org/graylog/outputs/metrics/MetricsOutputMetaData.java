@@ -34,12 +34,12 @@ public class MetricsOutputMetaData implements PluginMetaData {
 
     @Override
     public Version getVersion() {
-        return new Version(1, 1, 5);
+        return new Version(1, 2, 0);
     }
 
     @Override
     public String getDescription() {
-        return "Forwards selected field values of your messages to Graphite/Ganglia/InfluxDB.";
+        return "Forwards selected field values of your messages to Graphite/Ganglia/InfluxDB/StatsD.";
     }
 
     @Override

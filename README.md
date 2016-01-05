@@ -3,7 +3,7 @@ Metrics Plugin for Graylog
 
 [![Build Status](https://travis-ci.org/Graylog2/graylog-plugin-metrics.svg)](https://travis-ci.org/Graylog2/graylog-plugin-metrics)
 
-An output plugin for integrating [Graphite](http://graphite.readthedocs.org) and [Ganglia](http://ganglia.info) with [Graylog](https://www.graylog.org).
+An output plugin for integrating [Graphite](http://graphite.readthedocs.org), [Ganglia](http://ganglia.info) and [StatsD](https://github.com/etsy/statsd) with [Graylog](https://www.graylog.org).
 
 **Required Graylog version:** 1.1 and later
 

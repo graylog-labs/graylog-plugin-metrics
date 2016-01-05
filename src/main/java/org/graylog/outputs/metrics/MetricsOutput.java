@@ -6,6 +6,8 @@ import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
 import com.google.common.util.concurrent.AtomicLongMap;
 import com.google.inject.assistedinject.Assisted;
+import com.readytalk.metrics.StatsD;
+import com.readytalk.metrics.StatsDReporter;
 import info.ganglia.gmetric4j.gmetric.GMetric;
 import org.graylog2.plugin.Message;
 import org.graylog2.plugin.configuration.Configuration;
@@ -27,6 +29,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,12 +43,14 @@ public class MetricsOutput implements MessageOutput {
     public static final String CK_FIELDS = "fields";
     public static final String CK_INCLUDE_SOURCE = "include_source";
     public static final String CK_INCLUDE_TYPE = "include_type";
+    public static final String CK_INCLUDE_FIELD_VALUE = "include_field_value";
 
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private Configuration configuration;
 
     private GangliaReporter gangliaReporter;
     private GraphiteReporter graphiteReporter;
+    private StatsDReporter statsDReporter;
 
     private final MetricRegistry registry = new MetricRegistry();
     private AtomicLongMap<String> metricBuffer = AtomicLongMap.create();
@@ -70,6 +75,9 @@ public class MetricsOutput implements MessageOutput {
                 break;
             case "ganglia":
                 gangliaReporter = createGangliaReporter(uri);
+                break;
+            case "statsd":
+                statsDReporter = createStatsDReporter(uri);
                 break;
             default:
                 LOG.error("Metrics backend not supported!");
@@ -121,7 +129,7 @@ public class MetricsOutput implements MessageOutput {
                 continue;
             }
 
-            final String metricName = getMetricName(field, fieldType, message.getSource());
+            final String metricName = getMetricName(field, fieldType, message.getFields(), message.getSource());
 
             switch (fieldType.toLowerCase()) {
                 case "gauge":
@@ -182,6 +190,9 @@ public class MetricsOutput implements MessageOutput {
         if (graphiteReporter != null) {
             graphiteReporter.close();
         }
+        if (statsDReporter != null) {
+            statsDReporter.close();
+        }
 
         isRunning.set(false);
     }
@@ -204,7 +215,7 @@ public class MetricsOutput implements MessageOutput {
                             CK_URL,
                             "URL of metrics endpoint",
                             "graphite://localhost:2003",
-                            "URL of your Graphite/Ganglia/InfluxDB instance",
+                            "URL of your Graphite/Ganglia/InfluxDB/StatsD instance",
                             ConfigurationField.Optional.NOT_OPTIONAL)
             );
 
@@ -249,6 +260,14 @@ public class MetricsOutput implements MessageOutput {
                             "Metric name will be 'field name + type'.")
             );
 
+            configurationRequest.addField(new TextField(
+                    CK_INCLUDE_FIELD_VALUE,
+                    "Append the value of the given field to the end of the metric name.",
+                    "",
+                    "Metric name will be 'field name + fieled value'.",
+                    ConfigurationField.Optional.OPTIONAL)
+            );
+
             return configurationRequest;
         }
     }
@@ -262,11 +281,12 @@ public class MetricsOutput implements MessageOutput {
 
     public static class Descriptor extends MessageOutput.Descriptor {
         public Descriptor() {
-            super("Metrics Output", false, "", "Forwards selected field values of your messages to Graphite/Ganglia/InfluxDB.");
+            super("Metrics Output", false, "",
+                    "Forwards selected field values of your messages to Graphite/Ganglia/InfluxDB/StatsD.");
         }
     }
 
-    private String getMetricName(String field, String fieldType, String messageSource) {
+    private String getMetricName(String field, String fieldType, Map<String, Object> fields, String messageSource) {
         String metricName;
 
         /* prefix message source to metric name */
@@ -279,6 +299,15 @@ public class MetricsOutput implements MessageOutput {
         /* postfix field type to metric name */
         if (configuration.getBoolean(CK_INCLUDE_TYPE)) {
             metricName = metricName + "." + fieldType;
+        }
+
+        /* postfix field value to metric name */
+        if (!configuration.getString(CK_INCLUDE_FIELD_VALUE).isEmpty()) {
+            for (Map.Entry<String, Object> fieldEntry : fields.entrySet()) {
+                if (fieldEntry.getKey().equals(configuration.getString(CK_INCLUDE_FIELD_VALUE))) {
+                    metricName = metricName + "." + fieldEntry.getValue();
+                }
+            }
         }
 
         return metricName;
@@ -320,5 +349,16 @@ public class MetricsOutput implements MessageOutput {
             LOG.error("Can not connect to Ganglia server");
         }
         return gangliaReporter;
+    }
+
+    private StatsDReporter createStatsDReporter(URI uri) {
+        StatsDReporter statsDReporter = StatsDReporter.forRegistry(registry)
+                .prefixedWith(configuration.getString(CK_PREFIX))
+                .convertRatesTo(TimeUnit.SECONDS)
+                .convertDurationsTo(TimeUnit.MILLISECONDS)
+                .filter(MetricFilter.ALL)
+                .build(uri.getHost(), uri.getPort());
+        statsDReporter.start(configuration.getInt(CK_RUN_RATE), TimeUnit.SECONDS);
+        return statsDReporter;
     }
 }
