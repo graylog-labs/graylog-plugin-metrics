@@ -215,7 +215,7 @@ public class MetricsOutput implements MessageOutput {
                             CK_URL,
                             "URL of metrics endpoint",
                             "graphite://localhost:2003",
-                            "URL of your Graphite/Ganglia/InfluxDB/StatsD instance",
+                            "URL of your Graphite/Ganglia/StatsD instance",
                             ConfigurationField.Optional.NOT_OPTIONAL)
             );
 
@@ -223,15 +223,15 @@ public class MetricsOutput implements MessageOutput {
                             CK_PREFIX,
                             "Prefix for metric names",
                             "org.graylog",
-                            "Name of metric will be 'prefix + field name'.",
+                            "Metric name will be 'prefix + field name'.",
                             ConfigurationField.Optional.OPTIONAL)
             );
 
             configurationRequest.addField(new TextField(
                             CK_FIELDS,
-                            "Message fields to submit to metrics store",
+                            "Message fields to submit to the metrics store",
                             "response_time,db_time,view_time",
-                            "A comma separated list of field values in messages that should be transmitted as gauge values." +
+                            "A comma separated list of message field names that should be transmitted as gauge values." +
                             "Types like counter, meter, histogram can be set like: cache_hit:counter",
                             ConfigurationField.Optional.NOT_OPTIONAL)
             );
@@ -246,26 +246,26 @@ public class MetricsOutput implements MessageOutput {
                             NumberField.Attribute.ONLY_POSITIVE)
             );
 
+            configurationRequest.addField(new TextField(
+                            CK_INCLUDE_FIELD_VALUE,
+                            "Append the value of the given field to the end of the metric name.",
+                            "",
+                            "Metric name will be 'prefix + field name + value of another field'.",
+                            ConfigurationField.Optional.OPTIONAL)
+            );
+
             configurationRequest.addField(new BooleanField(
                             CK_INCLUDE_SOURCE,
                             "Include message source in metric name",
                             false,
-                            "Metric name will be 'prefix + message source + field name'.")
+                            "Metric name will be 'prefix + source + field name'.")
             );
 
             configurationRequest.addField(new BooleanField(
                             CK_INCLUDE_TYPE,
                             "Include field type in metric name",
                             false,
-                            "Metric name will be 'field name + type'.")
-            );
-
-            configurationRequest.addField(new TextField(
-                    CK_INCLUDE_FIELD_VALUE,
-                    "Append the value of the given field to the end of the metric name.",
-                    "",
-                    "Metric name will be 'field name + fieled value'.",
-                    ConfigurationField.Optional.OPTIONAL)
+                            "Metric name will be 'prefix + field name + type'.")
             );
 
             return configurationRequest;
@@ -282,7 +282,7 @@ public class MetricsOutput implements MessageOutput {
     public static class Descriptor extends MessageOutput.Descriptor {
         public Descriptor() {
             super("Metrics Output", false, "",
-                    "Forwards selected field values of your messages to Graphite/Ganglia/InfluxDB/StatsD.");
+                    "Forwards selected field values of your messages to Graphite/Ganglia/StatsD.");
         }
     }
 
@@ -296,12 +296,12 @@ public class MetricsOutput implements MessageOutput {
             metricName = field;
         }
 
-        /* postfix field type to metric name */
+        /* append field type to metric name */
         if (configuration.getBoolean(CK_INCLUDE_TYPE)) {
             metricName = metricName + "." + fieldType;
         }
 
-        /* postfix field value to metric name */
+        /* append field value to metric name */
         if (!configuration.getString(CK_INCLUDE_FIELD_VALUE).isEmpty()) {
             for (Map.Entry<String, Object> fieldEntry : fields.entrySet()) {
                 if (fieldEntry.getKey().equals(configuration.getString(CK_INCLUDE_FIELD_VALUE))) {

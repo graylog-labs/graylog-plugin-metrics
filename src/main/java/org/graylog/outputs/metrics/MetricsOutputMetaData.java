@@ -39,7 +39,7 @@ public class MetricsOutputMetaData implements PluginMetaData {
 
     @Override
     public String getDescription() {
-        return "Forwards selected field values of your messages to Graphite/Ganglia/InfluxDB/StatsD.";
+        return "Forwards selected field values of your messages to Graphite/Ganglia/StatsD.";
     }
 
     @Override
