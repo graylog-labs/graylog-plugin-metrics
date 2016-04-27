@@ -5,7 +5,9 @@ Metrics Plugin for Graylog
 
 An output plugin for integrating [Graphite](http://graphite.readthedocs.org), [Ganglia](http://ganglia.info) and [StatsD](https://github.com/etsy/statsd) with [Graylog](https://www.graylog.org).
 
-**Required Graylog version:** 1.1 and later
+**Required Graylog version:** 2.0 and later
+
+Please use version 1.2.0 of this plugin if you run Graylog 1.x
 
 ## Installation
 
@@ -18,7 +20,7 @@ Restart `graylog-server` and you are done.
 
 ## Build
 
-This project is using Maven and requires Java 7 or higher.
+This project is using Maven and requires Java 8 or higher.
 
 You can build a plugin (JAR) with `mvn package`.
 
