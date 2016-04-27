@@ -4,7 +4,7 @@
 
     <groupId>org.graylog.plugins</groupId>
     <artifactId>graylog-plugin-metrics</artifactId>
-    <version>1.2.1-SNAPSHOT</version>
+    <version>1.3.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>${project.artifactId}</name>
@@ -26,7 +26,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
-        <graylog2.version>1.3.2</graylog2.version>
+        <graylog2.version>2.0.0</graylog2.version>
         <graylog2.plugin-dir>/usr/share/graylog-server/plugin</graylog2.plugin-dir>
         <metrics.version>3.1.2</metrics.version>
         <metrics.statsd.version>4.1.2</metrics.statsd.version>
@@ -42,7 +42,7 @@
     <dependencies>
         <dependency>
             <groupId>org.graylog2</groupId>
-            <artifactId>graylog2-plugin</artifactId>
+            <artifactId>graylog2-server</artifactId>
             <version>${graylog2.version}</version>
             <scope>provided</scope>
         </dependency>
