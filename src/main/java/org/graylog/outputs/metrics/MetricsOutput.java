@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -53,7 +54,8 @@ public class MetricsOutput implements MessageOutput {
     private StatsDReporter statsDReporter;
 
     private final MetricRegistry registry = new MetricRegistry();
-    private AtomicLongMap<String> metricBuffer = AtomicLongMap.create();
+//    private AtomicLongMap<String> metricBuffer = AtomicLongMap.create();
+    private ConcurrentHashMap<String, Double> metricBuffer = new ConcurrentHashMap<>();
     private List<String> metricFields;
 
     @Inject
@@ -143,7 +145,7 @@ public class MetricsOutput implements MessageOutput {
                         });
                     }
                     // Update metric
-                    metricBuffer.put(metricName, metricValue.longValue());
+                    metricBuffer.put(metricName, metricValue.doubleValue());
                     break;
                 case "counter":
                     final Counter counter = registry.counter(metricName);
