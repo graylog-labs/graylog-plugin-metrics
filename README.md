@@ -1,7 +1,9 @@
 Metrics Plugin for Graylog
 ==========================
 
-[![Build Status](https://travis-ci.org/Graylog2/graylog-plugin-metrics.svg)](https://travis-ci.org/Graylog2/graylog-plugin-metrics)
+[![Github Downloads](https://img.shields.io/github/downloads/graylog-labs/graylog-plugin-metrics/total.svg)](https://github.com/graylog-labs/graylog-plugin-metrics/releases)
+[![GitHub Release](https://img.shields.io/github/release/graylog-labs/graylog-plugin-metrics.svg)](https://github.com/graylog-labs/graylog-plugin-metrics/releases)
+[![Build Status](https://travis-ci.org/graylog-labs/graylog-plugin-metrics.svg)](https://travis-ci.org/graylog-labs/graylog-plugin-metrics)
 
 An output plugin for integrating [Graphite](http://graphite.readthedocs.org), [Ganglia](http://ganglia.info) and [StatsD](https://github.com/etsy/statsd) with [Graylog](https://www.graylog.org).
 
@@ -11,7 +13,7 @@ Please use version 1.2.0 of this plugin if you run Graylog 1.x
 
 ## Installation
 
-[Download the plugin](https://github.com/Graylog2/graylog-plugin-metrics/releases)
+[Download the plugin](https://github.com/graylog-labs/graylog-plugin-metrics/releases)
 and place the `.jar` file in your Graylog plugin directory. The plugin directory
 is the `plugins/` folder relative from your `graylog-server` directory by default
 and can be configured in your `graylog.conf` file.
